@@ -28,33 +28,48 @@ filename_ipaddress="$name.$time.ipaddress"
 
 
 cat ~/temp/GeoIPASNum2.csv | LC_CTYPE=C cut -d"," -f3 | LC_CTYPE=C  sed 's/"//g' | grep -i "$name" | sort -u > ~/temp/"$filename_asn"
-echo "---------------------------------------------------------------------------------------------------------"
-echo "IP Adddress will be stored in :: ~/temp/$filename_ipaddress"
 
-echo "---------------------------------------------------------------------------------------------------------"
-echo "ASN Record found for enterprise $name"
-echo "---------------------------------------------------------------------------------------------------------"
+if [ -s ~/temp/"$filename_asn" ]; then
 
-# Read the value from the file and perform lookup
-while IFS='' read -r line || [[ -n $line ]]; do
-	asn=`echo $line | cut -f1 -d" "`
-	echo "ASN record: $line"
-	# Find the IP Addresses from the ASN record
-	whois -h whois.radb.net -- '-i origin '$line'' | grep -Eo "([0-9.]+){4}/[0-9]+" >> ~/temp/"$filename_ipaddress"
-done < ~/temp/"$filename_asn"
+	echo "---------------------------------------------------------------------------------------------------------"
+	echo "IP Adddress will be stored in :: ~/temp/$filename_ipaddress"
 
-echo "---------------------------------------------------------------------------------------------------------"
-echo "Enterprise Name: $name"
-echo "Found below IP Addresses belonging to $name"
-echo "---------------------------------------------------------------------------------------------------------"
+	echo "---------------------------------------------------------------------------------------------------------"
+	echo "ASN Record found for enterprise $name"
+	echo "---------------------------------------------------------------------------------------------------------"
 
-while IFS='' read -r line || [[ -n $line ]]; do
-	echo "$line"
-done < ~/temp/"$filename_ipaddress"
+	# Read the value from the file and perform lookup
+	while IFS='' read -r line || [[ -n $line ]]; do
+		asn=`echo $line | cut -f1 -d" "`
+		echo "ASN record: $line"
+		# Find the IP Addresses from the ASN record
+		whois -h whois.radb.net -- '-i origin '$line'' | grep -Eo "([0-9.]+){4}/[0-9]+" >> ~/temp/"$filename_ipaddress"
+	done < ~/temp/"$filename_asn"
 
-echo "---------------------------------------------------------------------------------------------------------"
+	echo "---------------------------------------------------------------------------------------------------------"
+	echo "Enterprise Name: $name"
+	echo "Found below IP Addresses belonging to $name"
+	echo "---------------------------------------------------------------------------------------------------------"
 
-#whois -h whois.radb.net -- '-i origin AS18541' | grep -Eo "([0-9.]+){4}/[0-9]+"
+	while IFS='' read -r line || [[ -n $line ]]; do
+		echo "$line"
+	done < ~/temp/"$filename_ipaddress"
+
+	echo "---------------------------------------------------------------------------------------------------------"
+	echo "Starting NMAP Scans for the identified IP Addresses"
+	echo "---------------------------------------------------------------------------------------------------------"
+	nmap_log=~/temp/"$name.$time.nmap"
+	echo "--------------------------------------------STARTED-------------------------------------------------------------" >> "$nmap_log" 
+	echo "Started nmap scan for $name at $date" >> "$nmap_log"
+	nmap -v -A -iL ~/temp/"$filename_ipaddress" >> "$nmap_log" 2>&1
+	echo "NMAP scan for $name finished at $date" >> "$nmap_log"	
+	echo "--------------------------------------------FINISHED-------------------------------------------------------------" >> "$nmap_log" 
+
+else
+	echo "ERROR: ASN record not found"
+	echo "ERROR: Please check the enterprise name and try again"
+	exit -1
+fi
 
 # Perform Clean Up
 rm ~/temp/GeoIPASNum2*
