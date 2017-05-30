@@ -1,0 +1,60 @@
+#!/bin/sh 
+#
+######################################################################################################
+# This script searches for the ASN correcponding to the enterprise 
+# Looks for the public IP address from the ASN name
+#
+# Author: Vikas Chourasiya
+#
+######################################################################################################
+
+if [ $# -lt 1 ]; then
+	echo "usage: find-if-address-of-enterprise.sh <name-of-enterprise>"
+exit
+fi
+name=$1
+echo "finding ip ranges for enterprise: $name"
+
+# create a temp directory
+mkdir -p ~/temp > /dev/null 2>&1
+cd ~/temp > /dev/null 2>&1
+rm ~/temp/GeoIPASNum2* > /dev/null 2>&1
+wget wget http://download.maxmind.com/download/geoip/database/asnum/GeoIPASNum2.zip > /dev/null 2>&1
+unzip GeoIPASNum2.zip >/dev/null 2>&1 
+
+time=`date +%s` > /dev/null 2>&1
+filename_asn="$name.$time.asn"
+filename_ipaddress="$name.$time.ipaddress"
+
+
+cat ~/temp/GeoIPASNum2.csv | LC_CTYPE=C cut -d"," -f3 | LC_CTYPE=C  sed 's/"//g' | grep -i "$name" | sort -u > ~/temp/"$filename_asn"
+echo "---------------------------------------------------------------------------------------------------------"
+echo "IP Adddress will be stored in :: ~/temp/$filename_ipaddress"
+
+echo "---------------------------------------------------------------------------------------------------------"
+echo "ASN Record found for enterprise $name"
+echo "---------------------------------------------------------------------------------------------------------"
+
+# Read the value from the file and perform lookup
+while IFS='' read -r line || [[ -n $line ]]; do
+	asn=`echo $line | cut -f1 -d" "`
+	echo "ASN record: $line"
+	# Find the IP Addresses from the ASN record
+	whois -h whois.radb.net -- '-i origin '$line'' | grep -Eo "([0-9.]+){4}/[0-9]+" >> ~/temp/"$filename_ipaddress"
+done < ~/temp/"$filename_asn"
+
+echo "---------------------------------------------------------------------------------------------------------"
+echo "Enterprise Name: $name"
+echo "Found below IP Addresses belonging to $name"
+echo "---------------------------------------------------------------------------------------------------------"
+
+while IFS='' read -r line || [[ -n $line ]]; do
+	echo "$line"
+done < ~/temp/"$filename_ipaddress"
+
+echo "---------------------------------------------------------------------------------------------------------"
+
+#whois -h whois.radb.net -- '-i origin AS18541' | grep -Eo "([0-9.]+){4}/[0-9]+"
+
+# Perform Clean Up
+rm ~/temp/GeoIPASNum2*
