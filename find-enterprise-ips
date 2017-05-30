@@ -60,9 +60,9 @@ if [ -s ~/temp/"$filename_asn" ]; then
 	echo "---------------------------------------------------------------------------------------------------------"
 	nmap_log=~/temp/"$name.$time.nmap"
 	echo "--------------------------------------------STARTED-------------------------------------------------------------" >> "$nmap_log" 
-	echo "Started nmap scan for $name at $date" >> "$nmap_log"
+	echo "Started nmap scan for $name at `date`" >> "$nmap_log"
 	nmap -v -A -iL ~/temp/"$filename_ipaddress" >> "$nmap_log" 2>&1
-	echo "NMAP scan for $name finished at $date" >> "$nmap_log"	
+	echo "NMAP scan for $name finished at `date`" >> "$nmap_log"	
 	echo "--------------------------------------------FINISHED-------------------------------------------------------------" >> "$nmap_log" 
 
 else
